@@ -2,7 +2,7 @@
 
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -17,14 +17,14 @@
 ------------------------------------------------------------------------- */
 
 #include "ndx_group.h"
-#include <mpi.h>
-#include <cstdlib>
-#include <cstring>
+
 #include "atom.h"
 #include "comm.h"
-#include "group.h"
 #include "error.h"
+#include "group.h"
 #include "utils.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 #define BUFLEN 4096
@@ -39,13 +39,13 @@ static char *find_section(FILE *fp, const char *name)
   while ((p = fgets(linebuf,BUFLEN,fp))) {
     r_token = p;
     t = utils::strtok_r(r_token," \t\n\r\f",&r_token);
-    if ((t != NULL) && *t == '[') {
-      t = utils::strtok_r(NULL," \t\n\r\f",&r_token);
-      if (t != NULL) {
+    if ((t != nullptr) && *t == '[') {
+      t = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
+      if (t != nullptr) {
         n = t;
-        t = utils::strtok_r(NULL," \t\n\r\f",&r_token);
-        if ((t != NULL) && *t == ']') {
-          if ((name == NULL) || strcmp(name,n) == 0) {
+        t = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
+        if ((t != nullptr) && *t == ']') {
+          if ((name == nullptr) || strcmp(name,n) == 0) {
             int l = strlen(n);
             r = new char[l+1];
             strncpy(r,n,l+1);
@@ -55,7 +55,7 @@ static char *find_section(FILE *fp, const char *name)
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 static tagint *read_section(FILE *fp, bigint &num)
@@ -73,7 +73,7 @@ static tagint *read_section(FILE *fp, bigint &num)
   while ((p = fgets(linebuf,BUFLEN,fp))) {
     r_token = p;
     t = utils::strtok_r(r_token," \t\n\r\f",&r_token);
-    while (t != NULL) {
+    while (t != nullptr) {
       // start of a new section. we are done here.
       if (*t == '[') return tagbuf;
 
@@ -82,7 +82,7 @@ static tagint *read_section(FILE *fp, bigint &num)
         nmax += DELTA;
         tagbuf = (tagint *)realloc(tagbuf,sizeof(tagint)*nmax);
       }
-      t = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+      t = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
     }
   }
   return tagbuf;
@@ -95,7 +95,7 @@ void Ndx2Group::command(int narg, char **arg)
   int len;
   bigint num;
   FILE *fp;
-  char *name = NULL;
+  char *name = nullptr;
   tagint *tags;
 
   if (narg < 1) error->all(FLERR,"Illegal ndx2group command");
@@ -105,7 +105,7 @@ void Ndx2Group::command(int narg, char **arg)
 
   if (comm->me == 0) {
     fp = fopen(arg[0], "r");
-    if (fp == NULL)
+    if (fp == nullptr)
       error->one(FLERR,"Cannot open index file for reading");
 
     if (screen)
@@ -122,15 +122,15 @@ void Ndx2Group::command(int narg, char **arg)
 
         // find the next section.
         // if we had processed a section, before we need to step back
-        if (name != NULL) {
+        if (name != nullptr) {
           rewind(fp);
           char *tmp = find_section(fp,name);
           delete[] tmp;
           delete[] name;
-          name = NULL;
+          name = nullptr;
         }
-        name = find_section(fp,NULL);
-        if (name != NULL) {
+        name = find_section(fp,nullptr);
+        if (name != nullptr) {
           len=strlen(name)+1;
 
           // skip over group "all", which is called "System" in gromacs
@@ -176,10 +176,10 @@ void Ndx2Group::command(int narg, char **arg)
         len = 0;
 
         // find named section, search from beginning of file
-        if (name != NULL) delete[] name;
+        if (name != nullptr) delete[] name;
         rewind(fp);
         name = find_section(fp,arg[idx]);
-        if (name != NULL) len=strlen(name)+1;
+        if (name != nullptr) len=strlen(name)+1;
 
         if (screen)
           fprintf(screen," %s group '%s'\n",
@@ -231,12 +231,7 @@ void Ndx2Group::create(char *name, bigint num, tagint *tags)
 {
   // wipe out all members if the group exists. gid==0 is group "all"
   int gid = group->find(name);
-  if (gid > 0) {
-    char *cmd[2];
-    cmd[0] = name;
-    cmd[1] = (char *)"clear";
-    group->assign(2,cmd);
-  }
+  if (gid > 0) group->assign(std::string(name) + " clear");
 
   // map from global to local
   const int nlocal = atom->nlocal;

@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -16,8 +16,8 @@
 ------------------------------------------------------------------------- */
 
 #include "fix_eos_table_rx.h"
-#include <mpi.h>
-#include <cstdlib>
+
+
 #include <cstring>
 #include <cmath>
 #include "atom.h"
@@ -26,7 +26,7 @@
 #include "memory.h"
 #include "comm.h"
 #include "modify.h"
-#include "utils.h"
+
 
 #define MAXLINE 1024
 
@@ -42,8 +42,8 @@ using namespace FixConst;
 /* ---------------------------------------------------------------------- */
 
 FixEOStableRX::FixEOStableRX(LAMMPS *lmp, int narg, char **arg) :
-  Fix(lmp, narg, arg), ntables(0), tables(NULL),
-  tables2(NULL), dHf(NULL), eosSpecies(NULL)
+  Fix(lmp, narg, arg), ntables(0), tables(nullptr),
+  tables2(nullptr), dHf(nullptr), eosSpecies(nullptr)
 {
   if (narg != 8 && narg != 10) error->all(FLERR,"Illegal fix eos/table/rx command");
   nevery = 1;
@@ -51,7 +51,7 @@ FixEOStableRX::FixEOStableRX(LAMMPS *lmp, int narg, char **arg) :
   rx_flag = false;
   nspecies = 1;
   for (int i = 0; i < modify->nfix; i++)
-    if (strncmp(modify->fix[i]->style,"rx",2) == 0){
+    if (utils::strmatch(modify->fix[i]->style,"^rx")) {
       rx_flag = true;
       nspecies = atom->nspecies_dpd;
       if(nspecies==0) error->all(FLERR,"There are no rx species specified.");
@@ -60,13 +60,13 @@ FixEOStableRX::FixEOStableRX(LAMMPS *lmp, int narg, char **arg) :
   if (strcmp(arg[3],"linear") == 0) tabstyle = LINEAR;
   else error->all(FLERR,"Unknown table style in fix eos/table/rx");
 
-  tablength = force->inumeric(FLERR,arg[5]);
+  tablength = utils::inumeric(FLERR,arg[5],false,lmp);
   if (tablength < 2) error->all(FLERR,"Illegal number of eos/table/rx entries");
 
   ntables = 0;
-  tables = NULL;
-  tables2 = NULL;
-  eosSpecies = NULL;
+  tables = nullptr;
+  tables2 = nullptr;
+  eosSpecies = nullptr;
 
   int me;
   MPI_Comm_rank(world,&me);
@@ -306,10 +306,10 @@ void FixEOStableRX::read_file(char *file)
   // open file on proc 0
 
   FILE *fp;
-  fp = NULL;
+  fp = nullptr;
   if (comm->me == 0) {
     fp = fopen(file,"r");
-    if (fp == NULL) {
+    if (fp == nullptr) {
       char str[128];
       snprintf(str,128,"Cannot open eos table/rx potential file %s",file);
       error->one(FLERR,str);
@@ -325,7 +325,7 @@ void FixEOStableRX::read_file(char *file)
   while (1) {
     if (comm->me == 0) {
       ptr = fgets(line,MAXLINE,fp);
-      if (ptr == NULL) {
+      if (ptr == nullptr) {
         eof = 1;
         fclose(fp);
       } else n = strlen(line) + 1;
@@ -338,7 +338,7 @@ void FixEOStableRX::read_file(char *file)
     // strip comment, skip line if blank
 
     if ((ptr = strchr(line,'#'))) *ptr = '\0';
-    nwords = atom->count_words(line);
+    nwords = utils::count_words(line);
     if (nwords == 0) continue;
 
     // concatenate additional lines until have params_per_line words
@@ -347,7 +347,7 @@ void FixEOStableRX::read_file(char *file)
       n = strlen(line);
       if (comm->me == 0) {
         ptr = fgets(&line[n],MAXLINE-n,fp);
-        if (ptr == NULL) {
+        if (ptr == nullptr) {
           eof = 1;
           fclose(fp);
         } else n = strlen(line) + 1;
@@ -357,7 +357,7 @@ void FixEOStableRX::read_file(char *file)
       MPI_Bcast(&n,1,MPI_INT,0,world);
       MPI_Bcast(line,n,MPI_CHAR,0,world);
       if ((ptr = strchr(line,'#'))) *ptr = '\0';
-      nwords = atom->count_words(line);
+      nwords = utils::count_words(line);
     }
 
     if (nwords != min_params_per_line && nwords != max_params_per_line)
@@ -368,7 +368,7 @@ void FixEOStableRX::read_file(char *file)
     r_token = line;
     nwords = 0;
     words[nwords++] = utils::strtok_r(r_token," \t\n\r\f",&r_token);
-    while ((words[nwords++] = utils::strtok_r(NULL," \t\n\r\f",&r_token))) continue;
+    while ((words[nwords++] = utils::strtok_r(nullptr," \t\n\r\f",&r_token))) continue;
 
     for (ispecies = 0; ispecies < nspecies; ispecies++)
       if (strcmp(words[0],&atom->dname[ispecies][0]) == 0) break;
@@ -390,10 +390,10 @@ void FixEOStableRX::read_file(char *file)
 
 void FixEOStableRX::null_table(Table *tb)
 {
-  tb->rfile = tb->efile = NULL;
-  tb->e2file = NULL;
-  tb->r = tb->e = tb->de = NULL;
-  tb->e2 = NULL;
+  tb->rfile = tb->efile = nullptr;
+  tb->e2file = nullptr;
+  tb->r = tb->e = tb->de = nullptr;
+  tb->e2 = nullptr;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -422,7 +422,7 @@ void FixEOStableRX::read_table(Table *tb, Table *tb2, char *file, char *keyword)
   // open file
 
   FILE *fp = fopen(file,"r");
-  if (fp == NULL) {
+  if (fp == nullptr) {
     char str[128];
     snprintf(str,128,"Cannot open file %s",file);
     error->one(FLERR,str);
@@ -431,7 +431,7 @@ void FixEOStableRX::read_table(Table *tb, Table *tb2, char *file, char *keyword)
   // loop until section found with matching keyword
 
   while (1) {
-    if (fgets(line,MAXLINE,fp) == NULL)
+    if (fgets(line,MAXLINE,fp) == nullptr)
       error->one(FLERR,"Did not find keyword in table file");
     if (strspn(line," \t\n\r") == strlen(line)) continue;    // blank line
     if (line[0] == '#') continue;                          // comment
@@ -479,7 +479,7 @@ void FixEOStableRX::read_table(Table *tb, Table *tb2, char *file, char *keyword)
   for (int i = 0; i < ninputs; i++) {
     utils::sfgets(FLERR,line,MAXLINE,fp,file,error);
 
-    nwords = atom->count_words(line);
+    nwords = utils::count_words(utils::trim_comment(line));
     if(nwords != nspecies+2){
       printf("nwords=%d  nspecies=%d\n",nwords,nspecies);
       error->all(FLERR,"Illegal fix eos/table/rx command");
@@ -487,7 +487,7 @@ void FixEOStableRX::read_table(Table *tb, Table *tb2, char *file, char *keyword)
     r_token = line;
     nwords = 0;
     word = utils::strtok_r(r_token," \t\n\r\f",&r_token);
-    word = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+    word = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
     rtmp = atof(word);
 
     for (int icolumn=0;icolumn<ncolumn;icolumn++){
@@ -496,7 +496,7 @@ void FixEOStableRX::read_table(Table *tb, Table *tb2, char *file, char *keyword)
       Table *tbl = &tables[ispecies];
       Table *tbl2 = &tables2[ispecies];
 
-      word = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+      word = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
       tmpE = atof(word);
 
       tbl->rfile[i] = rtmp;
@@ -581,11 +581,11 @@ void FixEOStableRX::param_extract(Table *tb, char *line)
 
   char *word = utils::strtok_r(r_token," \t\n\r\f",&r_token);
   if (strcmp(word,"N") == 0) {
-    word = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+    word = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
     tb->ninput = atoi(word);
   } else
     error->one(FLERR,"Invalid keyword in fix eos/table/rx parameters");
-  word = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+  word = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
 
   if(rx_flag){
     while (word) {
@@ -599,7 +599,7 @@ void FixEOStableRX::param_extract(Table *tb, char *line)
         printf("name=%s not found in species list\n",word);
         error->one(FLERR,"Invalid keyword in fix eos/table/rx parameters");
       }
-      word = utils::strtok_r(NULL," \t\n\r\f",&r_token);
+      word = utils::strtok_r(nullptr," \t\n\r\f",&r_token);
     }
 
     for (int icolumn = 0; icolumn < ncolumn; icolumn++)

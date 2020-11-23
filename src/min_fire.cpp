@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
-   http://lammps.sandia.gov, Sandia National Laboratories
+   https://lammps.sandia.gov/, Sandia National Laboratories
    Steve Plimpton, sjplimp@sandia.gov
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
@@ -16,21 +16,18 @@
                          Erik Bitzek, FAU Erlangen-Nuernberg
 ------------------------------------------------------------------------- */
 
-#include <cmath>
 #include "min_fire.h"
-#include "universe.h"
+
 #include "atom.h"
+#include "comm.h"
+#include "error.h"
 #include "force.h"
-#include "update.h"
 #include "output.h"
 #include "timer.h"
-#include "error.h"
-#include "variable.h"
-#include "modify.h"
-#include "compute.h"
-#include "domain.h"
-#include "neighbor.h"
-#include "comm.h"
+#include "universe.h"
+#include "update.h"
+
+#include <cmath>
 
 using namespace LAMMPS_NS;
 
@@ -314,7 +311,7 @@ int MinFire::iterate(int maxiter)
       for (int i = 0; i < nlocal; i++)
         v[i][0] = v[i][1] = v[i][2] = 0.0;
     }
-    
+
     // min dtv over replicas, if necessary
     // this communicator would be invalid for multiprocess replicas
 
